@@ -19,6 +19,22 @@
           "description": "Singapore UEN (e.g. 197601155W for local companies, T18Q123456A for foreign companies, 123456789A for businesses, S1234567 for societies)"
         }
       }
+    },
+    {
+      "url": "https://sg-uen-api.vercel.app/search",
+      "method": "POST",
+      "description": "Search ACRA BizFile+ by company name. Returns list of matching companies with UEN, name, and entity type. Useful for discovering UENs when you only know the company name. Price: $0.02 USDC on Base.",
+      "pricing": {
+        "amount": "20",
+        "currency": "USDC",
+        "network": "base"
+      },
+      "parameters": {
+        "name": {
+          "type": "body",
+          "description": "Company name to search (minimum 2 characters)"
+        }
+      }
     }
   ],
   "networks": ["base"],

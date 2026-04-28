@@ -196,9 +196,15 @@ async def health():
     return {
         "status": "healthy",
         "service": "Singapore UEN Lookup API",
-        "version": "1.0.1",
+        "version": "1.0.2",
         "price_per_lookup": f"${PRICE_UEN} USDC",
         "network": "Base (eip155:8453)",
+        "endpoints": {
+            "/uen/{uen}": "POST $0.02 USDC — full ACRA company lookup",
+            "/validate/{uen}": "GET free — UEN format validation",
+            "/search": "POST $0.02 USDC — company name search",
+            "/types": "GET free — UEN format guide",
+        }
     }
 
 
@@ -206,9 +212,11 @@ async def health():
 async def prices():
     return {
         "service": "Singapore UEN Lookup API",
-        "version": "1.0.1",
+        "version": "1.0.2",
         "endpoints": [
-            {"method": "POST", "path": "/uen/{uen}", "price": f"${PRICE_UEN} USDC", "description": "Look up any Singapore UEN (company, business, or society) via ACRA BizFile+", "params": {"uen": "path param — 9 to 10 character UEN"}},
+            {"method": "POST", "path": "/uen/{uen}", "price": f"${PRICE_UEN} USDC", "description": "Look up any Singapore UEN (company, business, or society) via ACRA BizFile+", "params": {"uen": "path param — UEN like 197601155W"}},
+            {"method": "POST", "path": "/search", "price": f"${PRICE_UEN} USDC", "description": "Search ACRA by company name — returns matching UENs", "params": {"name": "body param — company name (min 2 chars)"}},
+            {"method": "GET", "path": "/validate/{uen}", "price": "free", "description": "Validate UEN format and get type — no ACRA lookup"},
             {"method": "GET", "path": "/types", "price": "free", "description": "List all valid Singapore UEN formats with examples"},
         ],
         "network": "Base (eip155:8453)",
@@ -261,6 +269,87 @@ async def uen_types():
         "note": "All UEN types can be looked up via POST /uen/{uen} for $0.02 USDC",
         "network": "Base (eip155:8453)",
     }
+
+
+@app.get("/validate/{uen}")
+async def validate_uen_free(uen: str):
+    """Free UEN format validator — no payment required.
+    
+    Validates the format of a Singapore UEN and returns the UEN type.
+    Use this before calling /uen/{uen} to check format validity.
+    """
+    uen = uen.strip().upper()
+    is_valid, uen_type = validate_uen(uen)
+    return {
+        "uen": uen,
+        "valid_format": is_valid,
+        "uen_type": uen_type,
+        "needs_payment": True,
+        "note": "Format valid — call POST /uen/{" + uen + "} with x402 payment token for full ACRA lookup",
+        "network": "Base (eip155:8453)",
+    }
+
+
+@app.post("/search")
+async def search_company(request: Request, name: str = ""):
+    """Search ACRA by company name — $0.02 USDC.
+    
+    Search for companies by name. Returns list of matching UENs.
+    Headers: Authorization: Bearer <x402_payment_token>
+    Body: {"name": "company name"}
+    """
+    err = require_payment(request, PRICE_UEN, "/search")
+    if err:
+        return err
+    
+    if not name or len(name) < 2:
+        raise HTTPException(status_code=400, detail="Company name must be at least 2 characters")
+    
+    results = _search_acra_by_name(name)
+    results["price_charged"] = str(PRICE_UEN)
+    results["fetched_at"] = datetime.now().isoformat()
+    return results
+
+
+def _search_acra_by_name(name: str) -> dict:
+    """Search ACRA BizFile+ by company name."""
+    ACRA_SEARCH = "https://www.acra.gov.sg/bizfilecom/SearchBiz!simplifiedSearch.action"
+    try:
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Referer": "https://www.acra.gov.sg/",
+        })
+        resp = session.get(ACRA_SEARCH, params={"searchText": name, "searchType": "name"}, timeout=20)
+        if resp.status_code != 200:
+            return {"name": name, "error": f"ACRA unavailable ({resp.status_code})"}
+        html = resp.text
+        # Extract all company rows from results table
+        rows = re.findall(r'<tr[^>]*>\s*<td[^>]*>\s*<a[^>]*href[^>]*>\s*([^<]+)\s*</a>\s*</td>\s*<td[^>]*>\s*([^<]+)\s*</td>\s*<td[^>]*>\s*([^<]+)\s*</td>', html, re.IGNORECASE)
+        if not rows:
+            # Try alternative pattern
+            uens = re.findall(r'uen=([A-Z0-9]{9,12})', html)
+            names = re.findall(r'<b>([^<]{3,100})</b>', html)
+            if uens:
+                companies = [{"uen": u, "company_name": n if i < len(names) else "Unknown"} for i, u in enumerate(uens[:10])]
+                return {"name": name, "found": len(companies) > 0, "results": companies, "count": len(companies)}
+            return {"name": name, "found": False, "results": [], "count": 0, "note": "No companies found matching this name"}
+        companies = [{"uen": r[0].strip(), "company_name": r[1].strip(), "uen_type": r[2].strip()} for r in rows[:20]]
+        return {"name": name, "found": True, "results": companies, "count": len(companies), "source": "ACRA BizFile+"}
+    except requests.exceptions.Timeout:
+        return {"name": name, "error": "ACRA lookup timed out — try again"}
+    except Exception as e:
+        return {"name": name, "error": f"Search failed: {str(e)}"}
+
+
+@app.get("/search")
+async def search_company_get(request: Request, name: str = ""):
+    err = require_payment(request, PRICE_UEN, "/search")
+    if err:
+        return err
+    raise HTTPException(status_code=405, detail="Use POST /search with JSON body {"name": "company name"}")
 
 
 if __name__ == "__main__":
