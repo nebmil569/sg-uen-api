@@ -1,0 +1,11 @@
+{
+  "regions": ["hnd1"],
+  "env": {
+    "PRICE_UEN": "0.02"
+  },
+  "functions": {
+    "main.py": {
+      "runtime": "python3.12"
+    }
+  }
+}
