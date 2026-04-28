@@ -206,12 +206,60 @@ async def health():
 async def prices():
     return {
         "service": "Singapore UEN Lookup API",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "endpoints": [
             {"method": "POST", "path": "/uen/{uen}", "price": f"${PRICE_UEN} USDC", "description": "Look up any Singapore UEN (company, business, or society) via ACRA BizFile+", "params": {"uen": "path param — 9 to 10 character UEN"}},
+            {"method": "GET", "path": "/types", "price": "free", "description": "List all valid Singapore UEN formats with examples"},
         ],
         "network": "Base (eip155:8453)",
         "x402_enforced": True,
+    }
+
+
+@app.get("/types")
+async def uen_types():
+    """Free endpoint listing all valid Singapore UEN formats.
+    
+    Useful for agents to validate UENs before querying /uen/{uen}.
+    No payment required.
+    """
+    return {
+        "uen_types": [
+            {
+                "format": "12345678A",
+                "pattern": r"^\\d{8}[A-Z]$",
+                "example": "197601155W",
+                "name": "Local Company (ROC)",
+                "description": "Singapore registered companies under ACRA (Registry of Companies)",
+                "issuing_authority": "ACRA",
+            },
+            {
+                "format": "T123456789A",
+                "pattern": r"^T\\d{9}[A-Z]$",
+                "example": "T18Q123456A",
+                "name": "Foreign Company",
+                "description": "Overseas companies registered in Singapore as foreign entities",
+                "issuing_authority": "ACRA",
+            },
+            {
+                "format": "123456789A",
+                "pattern": r"^\\d{9}[A-Z]$",
+                "example": "123456789A",
+                "name": "Business / Sole Proprietorship",
+                "description": "Sole proprietorships and partnerships registered with ACRA",
+                "issuing_authority": "ACRA",
+            },
+            {
+                "format": "S1234567",
+                "pattern": r"^S\\d{8}$",
+                "example": "S1234567",
+                "name": "Society",
+                "description": "Societies, associations, and clubs registered under the Societies Act",
+                "issuing_authority": "Registry of Societies (ROS)",
+            },
+        ],
+        "note": "All UEN types can be looked up via POST /uen/{uen} for $0.02 USDC",
+        "network": "Base (eip155:8453)",
     }
 
 
