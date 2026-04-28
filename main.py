@@ -182,12 +182,21 @@ def _get_uen_type_desc(uen: str) -> str:
     return "Unknown"
 
 
+@app.get("/x402.json")
+async def x402_manifest():
+    """Serve x402 manifest for agent discovery."""
+    import os
+    manifest_path = os.path.join(os.path.dirname(__file__), 'x402.json')
+    with open(manifest_path, 'r') as f:
+        return JSONResponse(json.load(f))
+
+
 @app.get("/health")
 async def health():
     return {
         "status": "healthy",
         "service": "Singapore UEN Lookup API",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "price_per_lookup": f"${PRICE_UEN} USDC",
         "network": "Base (eip155:8453)",
     }

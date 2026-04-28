@@ -1,5 +1,21 @@
 {
-  "regions": ["hnd1"],
+  "version": 2,
+  "builds": [
+    {
+      "src": "main.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxDuration": 60,
+        "pythonVersion": "3.12"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "main.py"
+    }
+  ],
   "env": {
     "PRICE_UEN": "0.02"
   }

@@ -1,0 +1,32 @@
+{
+  "name": "Singapore UEN Lookup API",
+  "description": "Singapore UEN/ACRA company lookup — the only x402 API offering direct ACRA BizFile+ lookups for Singapore companies, businesses, and societies. Query any Singapore UEN (Unique Entity Number) to get company name, registration date, address, entity status, and SSIC code. Essential for KYC, compliance, vendor verification, and business intelligence. No other x402 API offers Singapore ACRA lookup.",
+  "url": "https://sg-uen-api.vercel.app",
+  "provider": "nebmil569",
+  "endpoints": [
+    {
+      "url": "https://sg-uen-api.vercel.app/uen/{uen}",
+      "method": "POST",
+      "description": "Look up any Singapore UEN (Unique Entity Number) via ACRA BizFile+. Returns company name, entity type (Local Company/Foreign Company/Business/Society), entity status, registration date, address, primary SSIC code, and paid-up capital. Supports all UEN formats: 197601155W (Local Co), T18Q123456A (Foreign), 123456789A (Business), S1234567 (Society). Price: $0.02 USDC on Base.",
+      "pricing": {
+        "amount": "20",
+        "currency": "USDC",
+        "network": "base"
+      },
+      "parameters": {
+        "uen": {
+          "type": "path",
+          "description": "Singapore UEN (e.g. 197601155W for local companies, T18Q123456A for foreign companies, 123456789A for businesses, S1234567 for societies)"
+        }
+      }
+    }
+  ],
+  "networks": ["base"],
+  "category": "finance",
+  "tags": ["singapore", "uen", "acra", "company", "business", "lookup", "kyc", "compliance", "vendor", "verification", "b2b"],
+  "preferred": {
+    "network": "base",
+    "asset": "USDC"
+  },
+  "manifest_version": 2
+}
