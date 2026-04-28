@@ -349,7 +349,7 @@ async def search_company_get(request: Request, name: str = ""):
     err = require_payment(request, PRICE_UEN, "/search")
     if err:
         return err
-    raise HTTPException(status_code=405, detail="Use POST /search with JSON body {"name": "company name"}")
+    raise HTTPException(status_code=405, detail='Use POST /search with JSON body {\'name\': \'company name\'}')
 
 
 if __name__ == "__main__":
